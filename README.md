@@ -46,3 +46,4 @@ Just make a PR m8
 2) Having the option to copy out libc and ld easily, then patching the binary to use them locally
 3) Having the option to add extra installation commands to the setup process to install any extra needed libraries
 4) Support for non-debian based docker images
+5) A way to make sure the user that compiles the file has full access to it after it comes out of the docker container. It's annoying if you want to delete it, it asks you if you're sure as it's "write-protected"
