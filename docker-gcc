@@ -1,0 +1,180 @@
+#!/bin/env python3
+
+import subprocess
+import os
+import sys
+from time import sleep
+
+VERSION="0.0.1"
+
+def run_cmd(cmd:list):
+    p = subprocess.Popen(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True
+    )
+    result, errors = p.communicate()
+    if len(errors) > 0:
+        print("Failed running docker command:")
+        print(' '.join(cmd))
+        print("With error:")
+        print(errors)
+
+        print("\nIf error is something like 'Could not find image x', delete the local file '.docker-gcc-env' and try again")
+        exit(1)
+    return result
+
+def docker_run(volume, image, command, detach=True):
+    docker_command = [
+        "docker",
+        "run"
+    ]
+
+    if detach:
+        docker_command.append("-d")
+    
+    docker_command += [
+        "-it",
+        "-v",
+        f"{volume}:{volume}",
+        "--workdir",
+        volume,
+        image,
+        "/bin/sh",
+        "-c",
+        command
+    ]
+    return run_cmd(docker_command)
+
+def get_container_status(id):
+    docker_command = [
+            "docker",
+            "ps",
+            "-a",
+            "-f",
+            f"id={id}",
+            "--format={{.Status}}"
+        ]
+    result = run_cmd(docker_command)
+    return result.split(" ")[0]
+
+def docker_container_commit(container_id,name):
+    image_name = f"docker-gcc/{name}:{container_id[0:12]}"
+    docker_command = [
+        "docker",
+        "commit",
+        container_id,
+        image_name
+    ]
+
+    run_cmd(docker_command)
+    
+    return image_name
+
+def docker_container_kill(container_id):
+    docker_command = [
+        "docker",
+        "kill",
+        container_id
+    ]
+    run_cmd(docker_command)
+
+def docker_image_delete(image_name):
+    docker_command = [
+        "docker",
+        "rmi",
+        image_name,
+        "--force"
+    ]
+    run_cmd(docker_command)
+
+def comp_image_create(image_name):
+    pwd = os.getcwd()
+
+    if(os.path.exists("./.docker-gcc-env")):
+        print("A docker compilation image already exists.")
+        print("Please use 'docker-gcc destroy' to delete the image before creating a new one")
+        exit(1)
+        
+    C_COMP_INSTALL = "apt-get update && apt-get upgrade -y && apt-get install -y build-essential gcc && touch ./.docker-gcc-done && /bin/bash"
+    container_id = docker_run(pwd,image_name,C_COMP_INSTALL)[:-1]
+    while(not os.path.exists("./.docker-gcc-done")):
+        container_status = get_container_status(container_id)
+        if container_status == "Exited":
+            print("Docker container failed image installation with a non-zero exit status")
+            exit(1)
+        sleep(1)
+    os.remove("./.docker-gcc-done")
+
+    print("Installation complete. Committing to image..")
+    image_name = docker_container_commit(container_id,image_name.replace(":","-"))
+
+    with open("./.docker-gcc-env","w") as f:
+        f.write(image_name)
+    
+    docker_container_kill(container_id)
+
+    print(f"Docker image successfully created with name: {image_name}")
+
+
+def comp_image_destroy():
+    if not os.path.exists("./.docker-gcc-env"):
+        print("No docker-gcc environment found. Doing nothing")
+        exit(1)
+    
+    with open("./.docker-gcc-env","r") as f:
+        image_name = f.read().strip()
+    docker_image_delete(image_name)
+
+    os.remove("./.docker-gcc-env")
+
+    print(f"docker-gcc environment deleted for image {image_name}")
+
+def comp_gcc_run(cmd):
+    if not os.path.exists("./.docker-gcc-env"):
+        print("No docker-gcc enviornment found. Please use the command 'docker-gcc create <image name>' to create one")
+        exit(1)
+    
+    with open("./.docker-gcc-env") as f:
+        image_name = f.read().strip()
+
+    pwd = os.getcwd()
+    result = docker_run(pwd,image_name,cmd,detach=False)
+
+    return result
+
+def print_help():
+    print("Usage: ")
+    print("docker-gcc [COMMAND | gcc options]")
+    print("\nCommands:")
+    print("create <image_name> - creates a docker-gcc environment for compilation in the current directory")
+    print("destroy             - destroys the docker-gcc environment in local directory")
+    print("help                - display this message")
+    print("")
+    print("Examples:")
+    print("$ docker-gcc create debian:10-slim")
+    print("$ docker-gcc test.c -o test")
+    print("$ docker-gcc destroy")
+
+
+if len(sys.argv) < 2:
+    print_help()
+    exit(1)
+
+
+if sys.argv[1] == "create":
+    print("Creating docker image, this may take a few seconds...")
+    comp_image_create(sys.argv[2])
+    exit(0)
+
+if(sys.argv[1] == "destroy"):
+    print("Destroying current compilation image")
+    comp_image_destroy()
+    exit(0)
+
+if(sys.argv[1] == "help"):
+    print_help()
+
+gcc_cmd = "gcc " + ' '.join(sys.argv[1:])
+print(comp_gcc_run(gcc_cmd))
