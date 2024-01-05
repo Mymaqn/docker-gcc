@@ -2,6 +2,8 @@
 
 docker-gcc allows you to easily create a simple gcc environment inside of a specified container to compile.
 
+Currently only supports debian based docker containers
+
 ## Example usage:
 
 #### Create an environment
@@ -43,3 +45,4 @@ Just make a PR m8
 1) Having an option in an env to do `docker-gcc clean` to remove the environment file in case of errors
 2) Having the option to copy out libc and ld easily, then patching the binary to use them locally
 3) Having the option to add extra installation commands to the setup process to install any extra needed libraries
+4) Support for non-debian based docker images
