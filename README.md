@@ -40,7 +40,7 @@ Once cloned you can either run it from the local directory or add it to your PAT
 
 ## Contribution
 There are only two requirements for making changes
-1) Everything should be contained in the single file for easy installation. Basically you should be able to curl the raw docker-gcc file with python3 and docker installed and it just works.
+1) Everything should be contained in the single file for easy installation. Basically you should be able to curl the raw docker-gcc file with python3 and docker installed, whereafter running it just works
 2) All changes are only allowed to depend on Python 3.9 standard libraries and up. I'm not installing any seperate libraries to make this work.
 
 ## Features for the future
