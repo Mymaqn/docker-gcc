@@ -2,7 +2,7 @@
 
 docker-gcc allows you to easily create a simple gcc environment inside of a specified container to compile.
 
-Currently only supports debian based docker containers
+Currently only supports debian based distribution docker containers
 
 ## Example usage:
 
