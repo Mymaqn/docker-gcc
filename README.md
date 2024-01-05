@@ -43,6 +43,8 @@ There are only two requirements for making changes
 1) Everything should be contained in the single file for easy installation. Basically you should be able to curl the raw docker-gcc file with python3 and docker installed, whereafter running it just works
 2) All changes are only allowed to depend on Python 3.9 standard libraries and up. I'm not installing any seperate libraries to make this work.
 
+If your code fullfills these two requirements you are welcome to submit a PR with your changes
+
 ## Features for the future
 1) Having an option in an env to do `docker-gcc clean` to remove the environment file in case of errors
 2) Having the option to copy out libc and ld easily, then patching the binary to use them locally
